@@ -407,12 +407,13 @@ int main() {
         float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
         lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
         // also calculate random color
-        float rColor = static_cast<float>((((rand() % 100) / 200.0f) + 0.5) * 50); // between 0.5 and 1.)
+        float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
         float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
         float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
         lightColors.push_back(glm::vec3(rColor, gColor, bColor));
     }
 
+    lightColors[0].r = 11;
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -535,6 +536,27 @@ int main() {
             renderCube();
         }
 
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+
+        skyboxShader.use();
+        view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
+        skyboxShader.setMat4("view", view);
+        skyboxShader.setMat4("projection", projection);
+
+        // skybox cube
+
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+
+
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glBindVertexArray(0);
+
+        glDepthFunc(GL_LESS); // set depth function back to default
+        glDepthMask(GL_TRUE);
+
         bool horizontal = true, first_iteration = true;
         unsigned int amount = 10;
         shaderBlur.use();
@@ -579,26 +601,7 @@ int main() {
         );
 
 
-        glDepthMask(GL_FALSE);
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        
-        skyboxShader.use();
-        view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
-        skyboxShader.setMat4("view", view);
-        skyboxShader.setMat4("projection", projection);
-        
-        // skybox cube
-
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        
-        
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        //glBindVertexArray(0);
-
-        glDepthFunc(GL_LESS); // set depth function back to default
-        glDepthMask(GL_TRUE);
+       
 
         std::map<float, glm::vec3> sorted;
         for (unsigned int i = 0; i < windows.size(); i++)
