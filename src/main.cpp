@@ -70,6 +70,15 @@ struct SpotLight {
 
 };
 
+struct ModelInfo {
+    Model model;
+    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 rotationAxis = glm::vec3(1.0f, 0.0f, 0.0f);
+    float angle = 0.0f;
+    //glm::vec3 scale = glm::vec3(0.0f, 0.0f, 0.0f);
+    float scale = 0.05f;
+};
+
 struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
@@ -78,6 +87,10 @@ struct ProgramState {
     glm::vec3 backpackPosition = glm::vec3(0.0f);
     float backpackScale = 1.0f;
     PointLight pointLight;
+    int index = 0;
+    int indexPointLight = 0;
+    int indexSpotLight = 0;
+    vector<ModelInfo> models;
     vector<PointLight> pointLights;
     vector<SpotLight> spotLights;
 
@@ -267,6 +280,13 @@ int main() {
     // load models
     // -----------
     Model backpack("resources/objects/backpack/backpack.obj");
+    programState->models.push_back({ backpack });
+    Model crystal("resources/objects/crystal/untitled.obj", hdr);
+    programState->models.push_back({ crystal });
+    Model temple("resources/objects/temple/scene.gltf", hdr);
+    programState->models.push_back({ temple });
+    Model chest("resources/objects/chest/scene.gltf", hdr);
+    programState->models.push_back({ chest });
     //ourModel.SetShaderTextureNamePrefix("material.");
 
     PointLight& pointLight = programState->pointLight;
@@ -524,11 +544,26 @@ int main() {
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,
-            programState->backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        shaderGeometryPass.setMat4("model", model);
-        backpack.Draw(shaderGeometryPass);
+        //model = glm::translate(model,
+        //    programState->backpackPosition); // translate it down so it's at the center of the scene
+        //model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
+        //shaderGeometryPass.setMat4("model", model);
+        //backpack.Draw(shaderGeometryPass);
+
+        
+
+        for (unsigned int i = 0; i < programState->models.size(); i++) {
+            ModelInfo* currentModel = &programState->models[i];
+            model = glm::mat4(1.0f);
+
+            model = glm::rotate(model, glm::radians(currentModel->angle), currentModel->rotationAxis);
+            model = glm::translate(model, currentModel->position);
+            model = model = glm::scale(model, glm::vec3(currentModel->scale));
+            shaderGeometryPass.setMat4("model", model);
+            currentModel->model.Draw(shaderGeometryPass);
+
+        }
+
         
         //glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
@@ -824,6 +859,28 @@ void DrawImGui(ProgramState* programState) {
         ImGui::End();
     }
 
+    ImGui::Begin("PointLight Info");
+    ImGui::DragInt("Index", &programState->indexPointLight, 1, 0, programState->pointLights.size());
+    ImGui::DragFloat3("Light position", (float*)&programState->pointLights[programState->indexPointLight].position, 0.01, -20.0, 20.0);
+    ImGui::DragFloat3("Light color", (float*)&programState->pointLights[programState->indexPointLight].color, 0.05, 0.00, 1.0);
+    ImGui::End();
+
+    ImGui::Begin("SpotLight Info");
+    ImGui::DragInt("Index", &programState->indexSpotLight, 1, 0, programState->spotLights.size());
+    ImGui::DragFloat3("Light position", (float*)&programState->spotLights[programState->indexSpotLight].position, 0.01, -20.0, 20.0);
+    ImGui::DragFloat3("Light color", (float*)&programState->spotLights[programState->indexSpotLight].color, 0.05, 0.00, 1.0);
+    ImGui::End();
+
+
+    ImGui::Begin("Model Info");
+    ImGui::DragInt("Index", &programState->index, 0, 1, programState->models.size());
+    ImGui::DragFloat3("Model position", (float*)&programState->models[programState->index].position, 0.01, -20.0, 20.0);
+    ImGui::DragFloat("Model scale", &programState->models[programState->index].scale, 0.02, 0.02, 128.0);
+    ImGui::DragFloat("Model rotation", &programState->models[programState->index].angle, 0.5, 0.0, 360.0);
+    ImGui::End();
+
+
+  
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
