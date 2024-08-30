@@ -57,10 +57,17 @@ struct PointLight {
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
+    glm::vec3 color;
 
     float constant;
     float linear;
     float quadratic;
+};
+
+struct SpotLight {
+    glm::vec3 position;
+    glm::vec3 color;
+
 };
 
 struct ProgramState {
@@ -71,6 +78,9 @@ struct ProgramState {
     glm::vec3 backpackPosition = glm::vec3(0.0f);
     float backpackScale = 1.0f;
     PointLight pointLight;
+    vector<PointLight> pointLights;
+    vector<SpotLight> spotLights;
+
     ProgramState()
         : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -395,25 +405,67 @@ int main() {
             std::cout << "Framebuffer not complete!" << std::endl;
     }
 
-    const unsigned int NR_LIGHTS = 32;
+    const unsigned int NR_LIGHTS = 16;
     std::vector<glm::vec3> lightPositions;
     std::vector<glm::vec3> lightColors;
     srand(13);
+   // for (unsigned int i = 0; i < NR_LIGHTS; i++)
+   // {
+        // calculate slightly random offsets
+   //     float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+   //     float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
+   //     float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
+   //     lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+        // also calculate random color
+   //     float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+   //     float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+   //     float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
+   //     lightColors.push_back(glm::vec3(rColor, gColor, bColor));
+   // }
+
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
         // calculate slightly random offsets
         float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
         float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
         float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-        lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
+       
+
         // also calculate random color
-        float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-        float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-        float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-        lightColors.push_back(glm::vec3(rColor, gColor, bColor));
+        float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+        float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+        float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+        PointLight light;
+        light.position = glm::vec3(xPos, yPos, zPos);
+        light.color = glm::vec3(rColor, gColor, bColor);
+        programState->pointLights.push_back(light);
     }
 
-    lightColors[0].r = 11;
+    for (int j = 0; j < 4; j++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+
+
+            glm::vec3 translateVector = glm::vec3(j * 0.5f, 0.0f, i * 0.5f);
+            //translateVector = translateVector + glm::vec3(0.0f, 2.5f, 0.0f);
+
+            float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+            float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+            float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+
+            SpotLight light;
+            light.position = translateVector;
+            light.color = glm::vec3(rColor, gColor, bColor);
+            programState->spotLights.push_back(light);
+
+        }
+    }
+    SpotLight light;
+    light.position = glm::vec3(0.15f, 15.0f, 0.0f);
+    light.color = glm::vec3(1.0f, 0.7f, 0.5f);
+    programState->spotLights.push_back(light);
+
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -489,21 +541,48 @@ int main() {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
         // send light relevant uniforms
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
+        
+        for (unsigned int i = 0; i < programState->pointLights.size(); i++)
         {
-            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position", lightPositions[i]);
-            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color", lightColors[i]);
+            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position",
+                programState->pointLights[i].position);
+            shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Color",
+                programState->pointLights[i].color);
             // update attenuation parameters and calculate radius
-            const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
+            const float constant = 1.0f;
             const float linear = 0.7f;
-            const float quadratic = 1.8f;
+            const float quadratic = 0.8f;
             shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Linear", linear);
             shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Quadratic", quadratic);
-            // then calculate radius of light volume/sphere
-            const float maxBrightness = std::fmaxf(std::fmaxf(lightColors[i].r, lightColors[i].g), lightColors[i].b);
+            const float maxBrightness = std::fmaxf(std::fmaxf(programState->pointLights[i].color.r,
+                programState->pointLights[i].color.g), programState->pointLights[i].color.b);
             float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
             shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
         }
+        
+        
+        for (unsigned int i = 0; i < programState->spotLights.size(); i++)
+        {
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].color",
+                glm::vec3(programState->spotLights[i].color));
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].position",
+                glm::vec3(programState->spotLights[i].position));
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].direction", 0.0f, -1.0f, 0.0f);
+
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].ambient", 0.1f, 0.1f, 0.1f);
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].diffuse", 0.8f, 0.8f, 0.8f);
+            shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].specular", 1.0f, 1.0f, 1.0f);
+
+            shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].cutOff", glm::cos(glm::radians(12.5f)));
+            shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].outerCutOff", glm::cos(glm::radians(17.5f)));
+            // update attenuation parameters and calculate radius
+            const float constant = 1.0f;
+            const float linear = 0.7f;
+            const float quadratic = 0.8f;
+            shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].linear", linear);
+            shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].quadratic", quadratic);
+        }
+        
         shaderLightingPass.setVec3("viewPos", programState->camera.Position);
         // finally render quad
         renderQuad();
@@ -526,13 +605,23 @@ int main() {
         shaderLightBox.use();
         shaderLightBox.setMat4("projection", projection);
         shaderLightBox.setMat4("view", view);
-        for (unsigned int i = 0; i < lightPositions.size(); i++)
+        for (unsigned int i = 0; i < programState->pointLights.size(); i++)
         {
             model = glm::mat4(1.0f);
-            model = glm::translate(model, lightPositions[i]);
-            model = glm::scale(model, glm::vec3(0.125f));
+            model = glm::translate(model, programState->pointLights[i].position);
+            model = glm::scale(model, glm::vec3(0.1f));
             shaderLightBox.setMat4("model", model);
-            shaderLightBox.setVec3("lightColor", lightColors[i]);
+            shaderLightBox.setVec3("lightColor", programState->pointLights[i].color);
+            renderCube();
+        }
+
+        for (unsigned int i = 0; i < programState->spotLights.size(); i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, programState->spotLights[i].position);
+            model = glm::scale(model, glm::vec3(0.05f));
+            shaderLightBox.setMat4("model", model);
+            shaderLightBox.setVec3("lightColor", programState->spotLights[i].color);
             renderCube();
         }
 

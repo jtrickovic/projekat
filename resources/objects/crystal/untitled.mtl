@@ -1,0 +1,233 @@
+# Blender 4.2.0 MTL File: 'None'
+# www.blender.org
+
+newmtl base_material.002
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.002_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.002_normal.png
+
+newmtl base_material.003
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.003_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.003_normal.png
+
+newmtl base_material.004
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.004_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.004_normal.png
+
+newmtl base_material.005
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.005_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.005_normal.png
+
+newmtl base_material.006
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.006_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.006_normal.png
+
+newmtl base_material.007
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.007_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.007_normal.png
+
+newmtl base_material.008
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.008_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.008_normal.png
+
+newmtl base_material.009
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.009_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.009_normal.png
+
+newmtl base_material.010
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.010_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.010_normal.png
+
+newmtl base_material.011
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.011_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.011_normal.png
+
+newmtl base_material.012
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.012_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.012_normal.png
+
+newmtl base_material.013
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.013_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.013_normal.png
+
+newmtl base_material.014
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.014_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.014_normal.png
+
+newmtl base_material.015
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.015_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.015_normal.png
+
+newmtl base_material.016
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.016_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.016_normal.png
+
+newmtl base_material.017
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.017_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.017_normal.png
+
+newmtl base_material.018
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.018_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.018_normal.png
+
+newmtl base_material.019
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.019_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.019_normal.png
+
+newmtl base_material.020
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.020_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.020_normal.png
+
+newmtl base_material.021
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.021_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.021_normal.png
+
+newmtl base_material.022
+Ns 32.000008
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+map_Kd textures/base_material.022_baseColor.jpeg
+map_Bump -bm 1.000000 textures/base_material.022_normal.png
