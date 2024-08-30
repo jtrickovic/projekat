@@ -100,6 +100,10 @@ struct ProgramState {
     void SaveToFile(std::string filename);
 
     void LoadFromFile(std::string filename);
+
+    void UpdatedSaveToFile(std::string filename, unsigned numModels, unsigned numPointLights, unsigned numSpotLights);
+
+    void UpdatedLoadFromFile(std::string filename, unsigned numModels, unsigned numPointLights, unsigned numSpotLights);
 };
 
 void ProgramState::SaveToFile(std::string filename) {
@@ -114,6 +118,55 @@ void ProgramState::SaveToFile(std::string filename) {
         << camera.Front.x << '\n'
         << camera.Front.y << '\n'
         << camera.Front.z << '\n';
+}
+
+void ProgramState::UpdatedSaveToFile(std::string filename, unsigned numModels, unsigned numPointLights, unsigned numSpotLights) {
+    std::ofstream out(filename);
+    out << clearColor.r << '\n'
+        << clearColor.g << '\n'
+        << clearColor.b << '\n'
+        << ImGuiEnabled << '\n'
+        << camera.Position.x << '\n'
+        << camera.Position.y << '\n'
+        << camera.Position.z << '\n'
+        << camera.Front.x << '\n'
+        << camera.Front.y << '\n'
+        << camera.Front.z << '\n';
+    for (int i = 0; i < numModels; i++)
+    {
+        out << models[i].position.x << ' '
+            << models[i].position.y << ' '
+            << models[i].position.z << '\n'
+            << models[i].rotationAxis.x << ' '
+            << models[i].rotationAxis.y << ' '
+            << models[i].rotationAxis.z << '\n'
+            << models[i].angle << '\n'
+            << models[i].scale << '\n';
+    }
+
+    for (int i = 0; i < numPointLights; i++)
+    {
+        out << pointLights[i].position.x << ' '
+            << pointLights[i].position.y << ' '
+            << pointLights[i].position.z << '\n'
+            << pointLights[i].color.x << ' '
+            << pointLights[i].color.y << ' '
+            << pointLights[i].color.z << '\n';
+
+    }
+
+    for (int i = 0; i < numSpotLights; i++)
+    {
+        out << spotLights[i].position.x << ' '
+            << spotLights[i].position.y << ' '
+            << spotLights[i].position.z << '\n'
+            << spotLights[i].color.x << ' '
+            << spotLights[i].color.y << ' '
+            << spotLights[i].color.z << '\n';
+
+    }
+
+
 }
 
 void ProgramState::LoadFromFile(std::string filename) {
@@ -132,6 +185,55 @@ void ProgramState::LoadFromFile(std::string filename) {
     }
 }
 
+void ProgramState::UpdatedLoadFromFile(std::string filename, unsigned numModels, unsigned numPointLights, unsigned numSpotLights) {
+    std::ifstream in(filename);
+    if (in) {
+        in >> clearColor.r
+            >> clearColor.g
+            >> clearColor.b
+            >> ImGuiEnabled
+            >> camera.Position.x
+            >> camera.Position.y
+            >> camera.Position.z
+            >> camera.Front.x
+            >> camera.Front.y
+            >> camera.Front.z;
+        for (int i = 0; i < numModels; i++)
+        {
+            in >> models[i].position.x
+                >> models[i].position.y
+                >> models[i].position.z
+                >> models[i].rotationAxis.x
+                >> models[i].rotationAxis.y
+                >> models[i].rotationAxis.z
+                >> models[i].angle
+                >> models[i].scale;
+        }
+
+        for (int i = 0; i < numPointLights; i++)
+        {
+            in >> pointLights[i].position.x
+                >> pointLights[i].position.y
+                >> pointLights[i].position.z
+                >> pointLights[i].color.x
+                >> pointLights[i].color.y
+                >> pointLights[i].color.z;
+
+        }
+
+        for (int i = 0; i < numSpotLights; i++)
+        {
+            in >> spotLights[i].position.x
+                >> spotLights[i].position.y
+                >> spotLights[i].position.z
+                >> spotLights[i].color.x
+                >> spotLights[i].color.y
+                >> spotLights[i].color.z;
+
+        }
+
+    }
+}
 ProgramState* programState;
 
 void DrawImGui(ProgramState* programState);
@@ -279,8 +381,8 @@ int main() {
 
     // load models
     // -----------
-    Model backpack("resources/objects/backpack/backpack.obj");
-    programState->models.push_back({ backpack });
+    //Model backpack("resources/objects/backpack/backpack.obj");
+    //programState->models.push_back({ backpack });
     Model crystal("resources/objects/crystal/untitled.obj", hdr);
     programState->models.push_back({ crystal });
     Model temple("resources/objects/temple/scene.gltf", hdr);
@@ -426,22 +528,9 @@ int main() {
     }
 
     const unsigned int NR_LIGHTS = 16;
-    std::vector<glm::vec3> lightPositions;
-    std::vector<glm::vec3> lightColors;
+    
     srand(13);
-   // for (unsigned int i = 0; i < NR_LIGHTS; i++)
-   // {
-        // calculate slightly random offsets
-   //     float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-   //     float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
-   //     float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-   //     lightPositions.push_back(glm::vec3(xPos, yPos, zPos));
-        // also calculate random color
-   //     float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-   //     float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-   //     float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.)
-   //     lightColors.push_back(glm::vec3(rColor, gColor, bColor));
-   // }
+   
 
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
@@ -505,6 +594,10 @@ int main() {
     shaderBloomFinal.setInt("bloomBlur", 1);
 
 
+    if (1)
+    {
+        programState->UpdatedLoadFromFile("resources/program_state1.txt", programState->models.size(), programState->pointLights.size(), programState->spotLights.size());
+    }
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -544,13 +637,8 @@ int main() {
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        //model = glm::translate(model,
-        //    programState->backpackPosition); // translate it down so it's at the center of the scene
-        //model = glm::scale(model, glm::vec3(programState->backpackScale));    // it's a bit too big for our scene, so scale it down
-        //shaderGeometryPass.setMat4("model", model);
-        //backpack.Draw(shaderGeometryPass);
-
         
+    
 
         for (unsigned int i = 0; i < programState->models.size(); i++) {
             ModelInfo* currentModel = &programState->models[i];
@@ -756,6 +844,7 @@ int main() {
         glDisable(GL_BLEND);
 
 
+        
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
@@ -768,6 +857,8 @@ int main() {
         glfwPollEvents();
     }
 
+    programState->UpdatedSaveToFile("resources/program_state1.txt", programState->models.size(),
+        programState->pointLights.size(), programState->spotLights.size());
     programState->SaveToFile("resources/program_state.txt");
     delete programState;
     ImGui_ImplOpenGL3_Shutdown();
@@ -870,7 +961,6 @@ void DrawImGui(ProgramState* programState) {
     ImGui::DragFloat3("Light position", (float*)&programState->spotLights[programState->indexSpotLight].position, 0.01, -20.0, 20.0);
     ImGui::DragFloat3("Light color", (float*)&programState->spotLights[programState->indexSpotLight].color, 0.05, 0.00, 1.0);
     ImGui::End();
-
 
     ImGui::Begin("Model Info");
     ImGui::DragInt("Index", &programState->index, 0, 1, programState->models.size());
