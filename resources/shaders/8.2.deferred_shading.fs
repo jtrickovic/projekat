@@ -21,7 +21,9 @@ struct SpotLight {
   
     vec3 ambient;
     vec3 diffuse;
-    vec3 specular;       
+    vec3 specular;
+
+    float Radius;       
 };
 
 struct DirLight {
@@ -71,26 +73,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 Diffuse, float
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 Diffuse, float Specular)
 {
-    //vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
-    //float diff = max(dot(normal, lightDir), 0.0);
-    // specular shading
-    //vec3 reflectDir = reflect(-lightDir, normal);
-    //float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
-    // attenuation
-    //float distance = length(light.position - fragPos);
-    //float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
-    // spotlight intensity
-    //float theta = dot(lightDir, normalize(-light.direction)); 
-    //float epsilon = light.cutOff - light.outerCutOff;
-    //float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
-    // combine results
-    //vec3 ambient = light.color * Diffuse;
-    //vec3 diffuse = light.color * diff * Diffuse;
-    //vec3 specular = light.color * spec * Specular;
-    //ambient *= attenuation * intensity;
-    //diffuse *= attenuation * intensity;
-    //specular *= attenuation * intensity;
+    
     float distance = length(light.position - fragPos);
     vec3 lightDir = normalize(light.position - fragPos);
     vec3 diffuse = max(dot(normal, lightDir), 0.0) * Diffuse * light.color;
@@ -141,15 +124,15 @@ void main()
             //float attenuation = 1.0 / (distance * distance);
             diffuse *= attenuation;
             specular *= attenuation;
-            //lighting += diffuse * intensity + specular * intensity;
-            //lighting =  vec3(1.0) - exp(-lighting * exposure);
-            //lighting = lighting / (lighting + vec3(1.0));
+            
             lighting += diffuse + specular;
         }
     }
     for(int i = 0; i < NR_LIGHTS; ++i)
     {
-       lighting += CalcSpotLight(spotlights[i], Normal, FragPos, viewDir, Diffuse, Specular);
+       float distance = length(spotlights[i].position - FragPos);
+       if(distance < spotlights[i].Radius)
+           lighting += CalcSpotLight(spotlights[i], Normal, FragPos, viewDir, Diffuse, Specular);
     }
 
     DirLight light;
@@ -158,13 +141,7 @@ void main()
     light.ambient = vec3(0.1f, 0.1f,0.1f);
     light.direction = vec3(0.0f,-1.0f,0.0f);
     lighting += CalcDirLight(light, Normal, viewDir, Diffuse, Specular);
-    //const float gamma = 2.2;
-    //vec3 hdrColor = lighting;
-    //vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
-     ///also gamma correct while we're at it       
-    //result = pow(result, vec3(1.0 / gamma));
-    //FragColor = vec4(result, 1.0);
-    //lighting = vec3(1.0) - exp(-lighting * exposure);
+    
     vec3 result = lighting;
     float brightness = dot(result, vec3(0.2126, 0.7152, 0.0722));
     if(brightness > 0.8)
@@ -175,11 +152,7 @@ void main()
     else
     {
         BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
-        //BrightColor.r = 0.0;
-        //BrightColor.g = 0.0;
-        //BrightColor.b = 0.0;
-        //BrightColor.a = 1.0;
-        //FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+        
     }
     FragColor = vec4(lighting, 1.0);
 }

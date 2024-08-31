@@ -37,6 +37,7 @@ void renderCube();
 //bools
 bool hdr = false;
 bool bloom = true;
+bool shades = false;
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -252,7 +253,7 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "RGProjekat", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -309,15 +310,17 @@ int main() {
     Shader shaderBloomFinal("resources/shaders/7.bloom_final.vs", "resources/shaders/7.bloom_final.fs");
     Shader shaderBlur("resources/shaders/7.blur.vs", "resources/shaders/7.blur.fs");
 
+    Shader shaderBlend("resources/shaders/7.bloom_final.vs", "resources/shaders/3.2.blending.fs");
+
     float transparentVertices[] = {
         // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
-        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        0.0f,  0.0f,  0.5f,  0.0f,  0.0f,
+        0.0f,  0.0f,  -0.5f,  0.0f,  1.0f,
+        1.0f,  0.0f,  -0.5f,  1.0f,  1.0f,
 
-        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+        0.0f,  0.0f,  0.5f,  0.0f,  0.0f,
+        1.0f,  0.0f,  -0.5f,  1.0f,  1.0f,
+        1.0f,  0.0f,  0.5f,  1.0f,  0.0f
     };
 
     float skyboxVertices[] = {
@@ -426,16 +429,22 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
-    unsigned int transparentTexture = loadTexture("resources/textures/window.png", hdr);
+    unsigned int transparentTexture = loadTexture("resources/textures/stars.png", hdr);
 
-    vector<glm::vec3> windows
+
+    vector<glm::vec3> stars;
+    glm::vec3 base = glm::vec3(-15.0f, 40.0f, -11.0f);
+    stars.push_back(base);
+
+    for (int i = 0; i < 10; i++)
     {
-        glm::vec3(-1.5f, 0.0f, -0.48f),
-        glm::vec3(1.5f, 0.0f, 0.51f),
-        glm::vec3(0.0f, 0.0f, 0.7f),
-        glm::vec3(-0.3f, 0.0f, -2.3f),
-        glm::vec3(0.5f, 0.0f, -0.6f)
-    };
+        for (int j = 0; j < 10; j++)
+        {
+            stars.push_back(glm::vec3(base.x + 9.2 * i, base.y + rand() % 5, base.z + 9.2 * j));
+
+        }
+    }
+    
 
     unsigned int gBuffer;
     glGenFramebuffers(1, &gBuffer);
@@ -593,6 +602,9 @@ int main() {
     shaderBloomFinal.setInt("scene", 0);
     shaderBloomFinal.setInt("bloomBlur", 1);
 
+    shaderBlend.use();
+    shaderBlend.setInt("texture1", 0);
+
 
     if (1)
     {
@@ -629,6 +641,7 @@ int main() {
 
         // view/projection transformations
         shaderGeometryPass.use();
+        glEnable(GL_CULL_FACE);
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
             (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
@@ -704,6 +717,10 @@ int main() {
             const float quadratic = 0.8f;
             shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].linear", linear);
             shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].quadratic", quadratic);
+            const float maxBrightness = std::fmaxf(std::fmaxf(programState->spotLights[i].color.r,
+                programState->spotLights[i].color.g), programState->spotLights[i].color.b);
+            float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
+            shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].Radius", radius);
         }
         
         shaderLightingPass.setVec3("viewPos", programState->camera.Position);
@@ -748,6 +765,8 @@ int main() {
             renderCube();
         }
 
+        glDisable(GL_CULL_FACE);
+
         glDepthMask(GL_FALSE);
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
 
@@ -768,6 +787,36 @@ int main() {
 
         glDepthFunc(GL_LESS); // set depth function back to default
         glDepthMask(GL_TRUE);
+
+        shaderTransparent.use();
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glBindVertexArray(transparentVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, transparentTexture);
+        view = programState->camera.GetViewMatrix();
+        shaderTransparent.setMat4("projection", projection);
+        shaderTransparent.setMat4("view", view);
+
+
+        std::map<float, glm::vec3> sorted;
+        for (unsigned int i = 0; i < stars.size(); i++)
+        {
+            float distance = glm::length(programState->camera.Position - stars[i]);
+            sorted[distance] = stars[i];
+        }
+
+        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+        {
+
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, it->second);
+            model = glm::scale(model, glm::vec3(10.0f));
+            shaderTransparent.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+        glDisable(GL_BLEND);
 
         bool horizontal = true, first_iteration = true;
         unsigned int amount = 10;
@@ -811,37 +860,9 @@ int main() {
         glBlitFramebuffer(
             0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST
         );
-
+        
 
        
-
-        std::map<float, glm::vec3> sorted;
-        for (unsigned int i = 0; i < windows.size(); i++)
-        {
-            float distance = glm::length(programState->camera.Position - windows[i]);
-            sorted[distance] = windows[i];
-        }
-
-        shaderTransparent.use();
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        glBindVertexArray(transparentVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, transparentTexture);
-        view = glm::mat4(programState->camera.GetViewMatrix());
-        shaderTransparent.setMat4("projection", projection);
-        shaderTransparent.setMat4("view", view);
-
-        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
-        {
-
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, it->second);
-            shaderTransparent.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-        glDisable(GL_BLEND);
 
 
         
@@ -960,7 +981,7 @@ void DrawImGui(ProgramState* programState) {
     ImGui::DragInt("Index", &programState->indexSpotLight, 1, 0, programState->spotLights.size());
     ImGui::DragFloat3("Light position", (float*)&programState->spotLights[programState->indexSpotLight].position, 0.01, -20.0, 20.0);
     ImGui::DragFloat3("Light color", (float*)&programState->spotLights[programState->indexSpotLight].color, 0.05, 0.00, 1.0);
-    ImGui::End();
+
 
     ImGui::Begin("Model Info");
     ImGui::DragInt("Index", &programState->index, 0, 1, programState->models.size());
@@ -970,9 +991,50 @@ void DrawImGui(ProgramState* programState) {
     ImGui::End();
 
 
+    
+    static const char* items[] = { "Models", "PointLight", "SpotLight" };
+    static int current_item = 0; 
+
+
+    ImGui::Begin("Choose");  
+
+   
+    if (ImGui::BeginCombo("Select Item", items[current_item]))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        {
+            bool is_selected = (current_item == n); 
+
+            if (ImGui::Selectable(items[n], is_selected))
+                current_item = n; 
+
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo(); 
+    }
+
+    
+    if (ImGui::Button("Place"))
+    {
+        const Camera& c = programState->camera;
+        if (current_item == 0)
+            programState->models[programState->index].position = glm::vec3(c.Position.x, c.Position.y, c.Position.z);
+        if (current_item == 1)
+            programState->pointLights[programState->indexPointLight].position = glm::vec3(c.Position.x, c.Position.y, c.Position.z);
+        if (current_item == 2)
+            programState->spotLights[programState->indexSpotLight].position = glm::vec3(c.Position.x, c.Position.y, c.Position.z);
+    }
+
+    ImGui::End();  
+
+
   
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -986,6 +1048,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
+    if (key == GLFW_KEY_B && action == GLFW_PRESS)
+        bloom = !bloom;
 }
 
 
