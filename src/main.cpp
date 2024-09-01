@@ -1117,7 +1117,7 @@ void DrawImGui(ProgramState* programState) {
     ImGui::DragInt("Index", &programState->indexSpotLight, 1, 0, programState->spotLights.size());
     ImGui::DragFloat3("Light position", (float*)&programState->spotLights[programState->indexSpotLight].position, 0.01, -20.0, 20.0);
     ImGui::DragFloat3("Light color", (float*)&programState->spotLights[programState->indexSpotLight].color, 0.05, 0.00, 1.0);
-
+    ImGui::End();
 
     ImGui::Begin("Model Info");
     ImGui::DragInt("Index", &programState->index, 0, 1, programState->models.size());
