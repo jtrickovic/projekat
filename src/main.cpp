@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <list>
 
 
 
@@ -34,10 +35,14 @@ unsigned int loadTexture(char const* path, bool gammaCorrection);
 void renderQuad();
 void renderCube();
 
+
+
 //bools
 bool hdr = false;
 bool bloom = true;
-bool shades = false;
+
+//floats
+float exposure = 0.5f;
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -70,6 +75,21 @@ struct SpotLight {
     glm::vec3 color;
 
 };
+
+struct Particle
+{
+    glm::vec3 color;
+    glm::vec3 position;
+    glm::vec3 speed;
+
+    float time_left;
+
+};
+
+void genParticles(list<Particle>* particles, glm::vec3 position);
+void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForce, unsigned int* amount);
+void clearParticles(list<Particle>* particles);
+
 
 struct ModelInfo {
     Model model;
@@ -311,6 +331,7 @@ int main() {
     Shader shaderBlur("resources/shaders/7.blur.vs", "resources/shaders/7.blur.fs");
 
     Shader shaderBlend("resources/shaders/7.bloom_final.vs", "resources/shaders/3.2.blending.fs");
+    Shader particleShader("resources/shaders/particle.vs", "resources/shaders/particle.fs");
 
     float transparentVertices[] = {
         // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
@@ -368,7 +389,7 @@ int main() {
          1.0f, -1.0f,  1.0f
     };
 
-    
+
     vector<std::string> faces
     {
             "resources/textures/skybox/right.jpg",
@@ -436,15 +457,15 @@ int main() {
     glm::vec3 base = glm::vec3(-15.0f, 40.0f, -11.0f);
     stars.push_back(base);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 20; i++)
     {
-        for (int j = 0; j < 10; j++)
+        for (int j = 0; j < 20; j++)
         {
             stars.push_back(glm::vec3(base.x + 9.2 * i, base.y + rand() % 5, base.z + 9.2 * j));
 
         }
     }
-    
+
 
     unsigned int gBuffer;
     glGenFramebuffers(1, &gBuffer);
@@ -537,9 +558,9 @@ int main() {
     }
 
     const unsigned int NR_LIGHTS = 16;
-    
+
     srand(13);
-   
+
 
     for (unsigned int i = 0; i < NR_LIGHTS; i++)
     {
@@ -547,7 +568,7 @@ int main() {
         float xPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
         float yPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 4.0);
         float zPos = static_cast<float>(((rand() % 100) / 100.0) * 6.0 - 3.0);
-       
+
 
         // also calculate random color
         float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
@@ -584,6 +605,43 @@ int main() {
     light.color = glm::vec3(1.0f, 0.7f, 0.5f);
     programState->spotLights.push_back(light);
 
+ 
+    const unsigned int maxAmount = 10000;
+
+    unsigned int colorVBO;
+    glGenBuffers(1, &colorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+    // Initialize with empty (NULL) buffer : it will be updated later, each frame.
+    glBufferData(GL_ARRAY_BUFFER, maxAmount * 3 * sizeof(float), NULL, GL_STREAM_DRAW);
+
+    unsigned int positionVBO;
+    glGenBuffers(1, &positionVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
+    // Initialize with empty (NULL) buffer : it will be updated later, each frame.
+    glBufferData(GL_ARRAY_BUFFER, maxAmount * 3 * sizeof(float), NULL, GL_STREAM_DRAW);
+
+    // The VBO containing the colors of the particles
+
+    unsigned int scaleVBO;
+    glGenBuffers(1, &scaleVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, scaleVBO);
+    // Initialize with empty (NULL) buffer : it will be updated later, each frame.
+    glBufferData(GL_ARRAY_BUFFER, maxAmount * 3 * sizeof(float), NULL, GL_STREAM_DRAW);
+
+    float instanceVertex[] = {
+         -0.5f, -0.5f, 0.0f,
+          0.5f, -0.5f, 0.0f,
+         -0.5f,  0.5f, 0.0f,
+          0.5f,  0.5f, 0.0f,
+    };
+    unsigned int vertexVBO;
+    glGenBuffers(1, &vertexVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(instanceVertex), instanceVertex, GL_STATIC_DRAW);
+    unsigned int instanceVAO;
+    glGenVertexArrays(1, &instanceVAO);
+
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -606,6 +664,14 @@ int main() {
     shaderBlend.setInt("texture1", 0);
 
 
+    float positionBuffer[maxAmount * 3];
+    float colorBuffer[maxAmount * 3];
+
+
+    programState->camera.Position.x = 0.0f;
+    programState->camera.Position.y = 0.0f;
+    programState->camera.Position.z = 0.0f;
+
     if (1)
     {
         programState->UpdatedLoadFromFile("resources/program_state1.txt", programState->models.size(), programState->pointLights.size(), programState->spotLights.size());
@@ -613,7 +679,7 @@ int main() {
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+    list<Particle> particles;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -626,12 +692,14 @@ int main() {
         // input
         // -----
         processInput(window);
+        unsigned int currentAmount;
 
-
-
+        
 
         // render
         // ------
+
+        
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -650,8 +718,8 @@ int main() {
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        
-    
+
+
 
         for (unsigned int i = 0; i < programState->models.size(); i++) {
             ModelInfo* currentModel = &programState->models[i];
@@ -665,7 +733,7 @@ int main() {
 
         }
 
-        
+
         //glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -677,7 +745,7 @@ int main() {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, gAlbedoSpec);
         // send light relevant uniforms
-        
+
         for (unsigned int i = 0; i < programState->pointLights.size(); i++)
         {
             shaderLightingPass.setVec3("lights[" + std::to_string(i) + "].Position",
@@ -695,8 +763,8 @@ int main() {
             float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
             shaderLightingPass.setFloat("lights[" + std::to_string(i) + "].Radius", radius);
         }
-        
-        
+
+
         for (unsigned int i = 0; i < programState->spotLights.size(); i++)
         {
             shaderLightingPass.setVec3("spotlights[" + std::to_string(i) + "].color",
@@ -722,7 +790,7 @@ int main() {
             float radius = (-linear + std::sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
             shaderLightingPass.setFloat("spotlights[" + std::to_string(i) + "].Radius", radius);
         }
-        
+
         shaderLightingPass.setVec3("viewPos", programState->camera.Position);
         // finally render quad
         renderQuad();
@@ -783,10 +851,65 @@ int main() {
 
 
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        //glBindVertexArray(0);
+        glBindVertexArray(0);
 
         glDepthFunc(GL_LESS); // set depth function back to default
         glDepthMask(GL_TRUE);
+
+
+        glm::vec3 gForce = glm::vec3(0.0f, -9.8f, 0.0f);
+        genParticles(&particles, glm::vec3(0.0f, 17.0f, -10.0f));
+        updateParticles(&particles, deltaTime, gForce, &currentAmount);
+
+
+
+        int i = 0;
+        for (auto it = particles.begin(); it != particles.end(); ++it)
+        {
+            positionBuffer[i * 3] = it->position.x;
+            positionBuffer[i * 3 + 1] = it->position.y;
+            positionBuffer[i * 3 + 2] = it->position.z;
+            colorBuffer[i * 3] = it->color.x;
+            colorBuffer[i * 3 + 1] = it->color.y;
+            colorBuffer[i * 3 + 2] = it->color.z;
+            i++;
+
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
+        glBufferData(GL_ARRAY_BUFFER, maxAmount * 3 * sizeof(float), NULL, GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
+        glBufferSubData(GL_ARRAY_BUFFER, 0, currentAmount * sizeof(float) * 3, positionBuffer);
+
+        glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+        glBufferData(GL_ARRAY_BUFFER, maxAmount * 3 * sizeof(float), NULL, GL_STREAM_DRAW); // Buffer orphaning, a common way to improve streaming perf. See above link for details.
+        glBufferSubData(GL_ARRAY_BUFFER, 0, currentAmount * sizeof(float) * 3, colorBuffer);
+
+
+        particleShader.use();
+        view = glm::mat4(programState->camera.GetViewMatrix());
+        particleShader.setMat4("projection", projection);
+        particleShader.setMat4("view", view);
+
+        glBindVertexArray(instanceVAO);
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, colorVBO);
+
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glBindBuffer(GL_ARRAY_BUFFER, positionVBO);
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glVertexAttribDivisor(0, 0);
+        glVertexAttribDivisor(1, 1);
+        glVertexAttribDivisor(2, 1);
+
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, currentAmount);
+
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
 
         shaderTransparent.use();
         glEnable(GL_BLEND);
@@ -834,18 +957,18 @@ int main() {
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
 
         projection = glm::perspective(glm::radians(programState->camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         view = programState->camera.GetViewMatrix();
-        
+
         shaderBloomFinal.use();
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
 
-        bool exposure = 0.5f;
+        
         shaderBloomFinal.setInt("bloom", bloom);
         shaderBloomFinal.setFloat("exposure", exposure);
         shaderBloomFinal.setBool("hdr", hdr);
@@ -860,16 +983,17 @@ int main() {
         glBlitFramebuffer(
             0, 0, SCR_WIDTH, SCR_HEIGHT, 0, 0, SCR_WIDTH, SCR_HEIGHT, GL_DEPTH_BUFFER_BIT, GL_NEAREST
         );
-        
 
-       
+
+
 
 
         
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
-
+        
+        //clearParticles(&particles);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -877,7 +1001,7 @@ int main() {
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
+    
     programState->UpdatedSaveToFile("resources/program_state1.txt", programState->models.size(),
         programState->pointLights.size(), programState->spotLights.size());
     programState->SaveToFile("resources/program_state.txt");
@@ -887,6 +1011,10 @@ int main() {
     ImGui::DestroyContext();
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
+
+    glDeleteVertexArrays(1, &transparentVAO);
+    glDeleteVertexArrays(1, &instanceVAO);
+    glDeleteVertexArrays(1, &skyboxVAO);
     glfwTerminate();
     return 0;
 }
@@ -905,6 +1033,11 @@ void processInput(GLFWwindow* window) {
         programState->camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         programState->camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        programState->camera.Position.y += deltaTime * programState->camera.MovementSpeed;
+    if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+        programState->camera.Position.y -= deltaTime * programState->camera.MovementSpeed;
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -946,20 +1079,7 @@ void DrawImGui(ProgramState* programState) {
     ImGui::NewFrame();
 
 
-    {
-        static float f = 0.0f;
-        ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
-        ImGui::ColorEdit3("Background color", (float*)&programState->clearColor);
-        ImGui::DragFloat3("Backpack position", (float*)&programState->backpackPosition);
-        ImGui::DragFloat("Backpack scale", &programState->backpackScale, 0.05, 0.1, 4.0);
-
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
-        ImGui::End();
-    }
+   
 
     {
         ImGui::Begin("Camera info");
@@ -991,30 +1111,30 @@ void DrawImGui(ProgramState* programState) {
     ImGui::End();
 
 
-    
+
     static const char* items[] = { "Models", "PointLight", "SpotLight" };
-    static int current_item = 0; 
+    static int current_item = 0;
 
 
-    ImGui::Begin("Choose");  
+    ImGui::Begin("Choose");
 
-   
+
     if (ImGui::BeginCombo("Select Item", items[current_item]))
     {
         for (int n = 0; n < IM_ARRAYSIZE(items); n++)
         {
-            bool is_selected = (current_item == n); 
+            bool is_selected = (current_item == n);
 
             if (ImGui::Selectable(items[n], is_selected))
-                current_item = n; 
+                current_item = n;
 
             if (is_selected)
                 ImGui::SetItemDefaultFocus();
         }
-        ImGui::EndCombo(); 
+        ImGui::EndCombo();
     }
 
-    
+
     if (ImGui::Button("Place"))
     {
         const Camera& c = programState->camera;
@@ -1026,10 +1146,10 @@ void DrawImGui(ProgramState* programState) {
             programState->spotLights[programState->indexSpotLight].position = glm::vec3(c.Position.x, c.Position.y, c.Position.z);
     }
 
-    ImGui::End();  
+    ImGui::End();
 
 
-  
+
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -1050,6 +1170,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     if (key == GLFW_KEY_B && action == GLFW_PRESS)
         bloom = !bloom;
+    if (key == GLFW_KEY_H && action == GLFW_PRESS)
+        hdr = !hdr;
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+        exposure += 0.05f;
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+        exposure -= 0.05f;
+    
+
 }
 
 
@@ -1234,4 +1362,64 @@ void renderQuad()
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
+}
+
+void genParticles(list<Particle>* particles, glm::vec3 position)
+{
+    Particle particle;
+    int particlesGenerated = 1;
+    float angleUp = 80.0f;
+    for (unsigned int i = 0; i < particlesGenerated; i++)
+    {
+        float rColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+        float gColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5); // between 0.5 and 1.0
+        float bColor = static_cast<float>(((rand() % 100) / 200.0f) + 0.5);
+        particle.color = glm::vec3(rColor, gColor, bColor);
+        particle.position = position;
+        float x = glm::sin(glm::radians(angleUp)) * glm::cos(glm::radians(rand() % 360 + 0.5));
+        float z = glm::sin(glm::radians(angleUp)) * glm::sin(glm::radians(rand() % 360 + 0.5));
+        float y = glm::cos(glm::radians(angleUp));
+        glm::vec3 direction = glm::vec3(x, y, z);
+        float speed = 2.0f;
+
+        particle.speed = direction * speed;
+        particle.time_left = 1.5f;
+
+        (*particles).push_back(particle);
+    }
+}
+
+void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForce, unsigned int* amount)
+{
+    unsigned int s = 0;
+    auto it = particles->begin();
+    while (it != particles->end())
+    {
+        it->position += it->speed * deltaTime;  // Update position
+        it->speed += gForce * deltaTime;        // Apply gravity to speed
+        it->time_left -= deltaTime;             // Decrease the lifetime
+
+        if (it->time_left <= 0.0f) {
+            it = particles->erase(it); // Remove dead particles
+        }
+        else {
+            ++it;
+            s++;
+        }
+    }
+
+    *amount = s; // Update the number of active particles
+}
+
+
+
+void clearParticles(list<Particle>* particles)
+{
+    for (auto it = particles->begin(); it != particles->end(); )
+    {
+        if (it->time_left < 0)
+            it = particles->erase(it); // Use the returned iterator
+        else
+            ++it;
+    }
 }
