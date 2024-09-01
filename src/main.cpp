@@ -998,10 +998,6 @@ int main() {
 
 
 
-
-
-        
-
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
         
@@ -1027,6 +1023,14 @@ int main() {
     glDeleteVertexArrays(1, &transparentVAO);
     glDeleteVertexArrays(1, &instanceVAO);
     glDeleteVertexArrays(1, &skyboxVAO);
+    glDeleteFramebuffers(1, &hdrFBO);
+    glDeleteFramebuffers(1, &gBuffer);
+    glDeleteFramebuffers(2, pingpongFBO);
+    glDeleteTextures(1, &gAlbedoSpec);
+    glDeleteTextures(1, &gNormal);
+    glDeleteTextures(1, &gPosition);
+    glDeleteTextures(1, &transparentTexture);
+    glDeleteTextures(2, colorBuffers);
     glfwTerminate();
     return 0;
 }
@@ -1409,12 +1413,12 @@ void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForc
     auto it = particles->begin();
     while (it != particles->end())
     {
-        it->position += it->speed * deltaTime;  // Update position
-        it->speed += gForce * deltaTime;        // Apply gravity to speed
-        it->time_left -= deltaTime;             // Decrease the lifetime
+        it->position += it->speed * deltaTime;  
+        it->speed += gForce * deltaTime;        
+        it->time_left -= deltaTime;             
 
         if (it->time_left <= 0.0f) {
-            it = particles->erase(it); // Remove dead particles
+            it = particles->erase(it); 
         }
         else {
             ++it;
@@ -1422,7 +1426,7 @@ void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForc
         }
     }
 
-    *amount = s; // Update the number of active particles
+    *amount = s; 
 }
 
 
