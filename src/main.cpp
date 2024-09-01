@@ -40,6 +40,7 @@ void renderCube();
 //bools
 bool hdr = false;
 bool bloom = true;
+bool konfeti = true;
 
 //floats
 float exposure = 0.5f;
@@ -88,7 +89,7 @@ struct Particle
 
 void genParticles(list<Particle>* particles, glm::vec3 position);
 void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForce, unsigned int* amount);
-void clearParticles(list<Particle>* particles);
+
 
 
 struct ModelInfo {
@@ -461,7 +462,17 @@ int main() {
     {
         for (int j = 0; j < 20; j++)
         {
-            stars.push_back(glm::vec3(base.x + 9.2 * i, base.y + rand() % 5, base.z + 9.2 * j));
+            int x;
+            int z;
+            if (i % 2 == 0)
+                x = -i / 2;
+            else
+                x = i / 2;
+            if (j % 2 == 0)
+                z = -j / 2;
+            else
+                z = j / 2;
+            stars.push_back(glm::vec3(base.x + 9.2 * x, base.y + rand() % 5, base.z + 9.2 * z));
 
         }
     }
@@ -606,7 +617,7 @@ int main() {
     programState->spotLights.push_back(light);
 
  
-    const unsigned int maxAmount = 10000;
+    const unsigned int maxAmount = 20000;
 
     unsigned int colorVBO;
     glGenBuffers(1, &colorVBO);
@@ -858,7 +869,7 @@ int main() {
 
 
         glm::vec3 gForce = glm::vec3(0.0f, -9.8f, 0.0f);
-        genParticles(&particles, glm::vec3(0.0f, 17.0f, -10.0f));
+        genParticles(&particles, glm::vec3(0.0f, 14.5f, -10.0f));
         updateParticles(&particles, deltaTime, gForce, &currentAmount);
 
 
@@ -905,6 +916,7 @@ int main() {
         glVertexAttribDivisor(1, 1);
         glVertexAttribDivisor(2, 1);
 
+        if(konfeti)
         glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, currentAmount);
 
         glDisableVertexAttribArray(0);
@@ -1176,6 +1188,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         exposure += 0.05f;
     if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
         exposure -= 0.05f;
+    if (key == GLFW_KEY_K && action == GLFW_PRESS)
+        konfeti = !konfeti;
     
 
 }
@@ -1413,13 +1427,3 @@ void updateParticles(list<Particle>* particles, float deltaTime, glm::vec3 gForc
 
 
 
-void clearParticles(list<Particle>* particles)
-{
-    for (auto it = particles->begin(); it != particles->end(); )
-    {
-        if (it->time_left < 0)
-            it = particles->erase(it); // Use the returned iterator
-        else
-            ++it;
-    }
-}
